@@ -36,18 +36,21 @@ lib/
 
 ### formal verification & dataflow
 
-register initialization is verified via forward dataflow analysis over the powerset lattice $\mathcal{P}(\{0 \dots \text{max\_stack\_size}-1\})$:
+register initialization is verified via forward dataflow analysis over the lattice of available registers:
 
-- **entry boundary**:
-  $$\text{IN}[\text{entry}] = \{0, 1, \dots, \text{num\_params} - 1\}$$
+```text
+entry boundary:
+  IN[entry] = { 0, 1, ..., num_params - 1 }
 
-- **confluence (meet operator)**:
-  registers are valid only if initialized across **all** incoming execution paths:
-  $$\text{IN}[B] = \bigcap_{P \in \text{preds}(B)} \text{OUT}[P]$$
+confluence (meet operator):
+  IN[B] = ⋂ OUT[P]    (for all predecessors P of B)
 
-- **transfer function**:
-  $$\text{OUT}[B] = \text{IN}[B] \cup \text{GEN}[B]$$
-  $$\forall I \in B, \; r \in \text{uses}(I) \implies r \in \text{Assigned}_{\text{current}} \quad (\text{else } \text{VIOLATION})$$
+block transfer:
+  OUT[B] = IN[B] ∪ GEN[B]
+
+safety invariant:
+  ∀ I ∈ B, ∀ r ∈ uses(I) : r ∈ Assigned_current  (else: VIOLATION)
+```
 
 ---
 
