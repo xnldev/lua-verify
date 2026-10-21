@@ -1,42 +1,42 @@
 # lua-verify
 
-static bytecode analyzer, control flow graph (cfg) reconstructor, and register liveness verifier for the lua 5.1 virtual machine. written from scratch in idiomatic ocaml with zero external runtime dependencies.
+Static bytecode analyzer, Control Flow Graph (CFG) reconstructor, and register liveness verifier for the Lua 5.1 Virtual Machine. Written from scratch in idiomatic OCaml with zero external runtime dependencies.
 
 ---
 
-### overview
+### Overview
 
-the lua 5.1 vm executes 32-bit instructions on a register-based stack under the assumption of well-formed bytecode. malformed or manipulated chunks can trigger out-of-bounds branches, stack leakage, or memory corruption.
+The Lua 5.1 VM executes 32-bit instructions on a register-based stack under the assumption of well-formed bytecode. Malformed or manipulated chunks can trigger out-of-bounds branches, stack leakage, or memory corruption.
 
 `lua-verify` provides formal binary analysis and verification of compiled chunks prior to execution:
-- **zero-dependency binary deserializer**: handles raw stream decoding, target endianness, variable-length `size_t`, and ieee 754 float reconstruction via `Int64`.
-- **instruction decoder**: bitfield unpacking of all 38 vm opcodes across `iABC`, `iABx`, `isBx` formats with `RK` operand resolution.
-- **jump validity checker**: formal bounds checking for relative jumps (`sBx`) and conditional branch continuity.
-- **cfg reconstruction**: basic block leader partitioning and graphviz `.dot` visual export with colored edge classification.
-- **definite assignment analysis**: forward dataflow fixed-point iteration ($\bigcap$ meet operator) proving the absence of uninitialized register reads.
+- **Zero-Dependency Binary Deserializer**: handles raw stream decoding, target endianness, variable-length `size_t`, and IEEE 754 float reconstruction via `Int64`.
+- **Instruction Decoder**: bitfield unpacking of all 38 VM opcodes across `iABC`, `iABx`, `isBx` formats with `RK` operand resolution.
+- **Jump Validity Checker**: formal bounds checking for relative jumps (`sBx`) and conditional branch continuity.
+- **CFG Reconstruction**: basic block leader partitioning and Graphviz `.dot` visual export with colored edge classification.
+- **Definite Assignment Analysis**: forward dataflow fixed-point iteration ($\bigcap$ meet operator) proving the absence of uninitialized register reads.
 
 ---
 
-### architecture
+### Architecture
 
 ```text
 lib/
-├── bytecode/               # binary parsing & vm representation
+├── bytecode/               # Binary parsing & VM representation
 │   ├── header.ml / .mli    # 12-byte chunk signature & target configuration
-│   ├── reader.ml / .mli    # stream cursor, endianness & string decoding
+│   ├── reader.ml / .mli    # Stream cursor, endianness & string decoding
 │   ├── instruction.ml/.mli # 32-bit bitmask unpacking & opcode variants
-│   └── proto.ml / .mli     # prototype ast, constants & debug metadata
-└── analysis/               # verification & dataflow passes
-    ├── jump_checker.ml/.mli# relative branch safety & boundary assertions
-    ├── cfg.ml / .mli       # basic block partitioning & graphviz dot export
-    └── liveness.ml / .mli  # use-def extraction & register dataflow analysis
+│   └── proto.ml / .mli     # Prototype AST, constants & debug metadata
+└── analysis/               # Verification & dataflow passes
+    ├── jump_checker.ml/.mli# Relative branch safety & boundary assertions
+    ├── cfg.ml / .mli       # Basic block partitioning & Graphviz DOT export
+    └── liveness.ml / .mli  # Use-Def extraction & register dataflow analysis
 ```
 
 ---
 
-### formal verification & dataflow
+### Formal Verification & Dataflow
 
-register initialization is verified via forward dataflow analysis over the lattice of available registers:
+Register initialization is verified via forward dataflow analysis over the lattice of available registers:
 
 ```text
 entry boundary:
@@ -54,9 +54,9 @@ safety invariant:
 
 ---
 
-### output preview
+### Output Preview
 
-#### 1. control flow graph (dot)
+#### 1. Control Flow Graph (Graphviz DOT)
 
 ```dot
 digraph "branching_demo" {
@@ -77,7 +77,7 @@ digraph "branching_demo" {
 }
 ```
 
-#### 2. verifier diagnostics
+#### 2. Verifier Diagnostics
 
 ```text
 === Jump Verification Report ===
@@ -92,27 +92,27 @@ digraph "branching_demo" {
 
 ---
 
-### build
+### Build & Run
 
 ```bash
-# build bytecode & analysis libraries
+# Build bytecode & analysis libraries
 dune build
 
-# run test suite & verifier passes
+# Run test suite & verifier passes
 dune exec lua-verify
 ```
 
 ---
 
-### roadmap
+### Roadmap
 
-- [x] binary chunk header & environment validation
-- [x] zero-dependency binary reader (endianness, floats, size_t)
-- [x] 32-bit instruction bitfield decoder & rk operand resolver
-- [x] recursive prototype ast & constant table parser
-- [x] relative jump out-of-bounds verifier
-- [x] control flow graph builder (leader algorithm)
-- [x] graphviz dot exporter with branch classification
-- [x] definite assignment dataflow analysis
-- [ ] standalone cli driver for external `.luac` files
-- [ ] static single assignment (ssa) ir translation
+- [x] Binary chunk header & environment validation
+- [x] Zero-dependency binary reader (endianness, IEEE 754 floats, size_t)
+- [x] 32-bit instruction bitfield decoder & RK operand resolver
+- [x] Recursive prototype AST & constant table parser
+- [x] Relative jump out-of-bounds verifier
+- [x] Control Flow Graph (CFG) builder (Leader Algorithm)
+- [x] Graphviz DOT exporter with branch classification
+- [x] Definite assignment dataflow analysis
+- [ ] Standalone CLI driver for external `.luac` files
+- [ ] Static Single Assignment (SSA) IR translation
