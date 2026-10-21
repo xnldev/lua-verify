@@ -1,0 +1,5 @@
+(executable
+ (name main)
+ (public_name lua-verify)
+ (package lua_verify)
+ (libraries lua_bytecode lua_analysis))

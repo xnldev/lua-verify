@@ -1,0 +1,3 @@
+(library
+ (name  lua_bytecode)
+ (public_name lua_verify.bytecode))

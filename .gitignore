@@ -1,0 +1,23 @@
+# Dune build artifacts
+_build/
+*.install
+.merlin
+
+# OCaml compiled object files
+*.cmi
+*.cmo
+*.cmx
+*.o
+*.a
+*.so
+*.dll
+*.exe
+*.byte
+
+# Editor / OS files
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
+Thumbs.db

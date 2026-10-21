@@ -1,0 +1,4 @@
+(library
+ (name lua_analysis)
+ (public_name lua_verify.analysis)
+ (libraries lua_bytecode))
