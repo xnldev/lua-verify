@@ -114,5 +114,5 @@ dune exec lua-verify
 - [x] Control Flow Graph (CFG) builder (Leader Algorithm)
 - [x] Graphviz DOT exporter with branch classification
 - [x] Definite assignment dataflow analysis
-- [ ] Standalone CLI driver for external `.luac` files
+- [x] Standalone CLI driver for external `.luac` files
 - [ ] Static Single Assignment (SSA) IR translation
