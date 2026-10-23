@@ -1,6 +1,6 @@
 # lua-verify
 
-Static bytecode analyzer, Control Flow Graph (CFG) reconstructor, and register liveness verifier for the Lua 5.1 Virtual Machine. Written from scratch in idiomatic OCaml with zero external runtime dependencies.
+Static bytecode analyzer, Control Flow Graph (CFG) reconstructor, register liveness verifier, and Static Single Assignment (SSA) IR generator for the Lua 5.1 Virtual Machine. Written from scratch in idiomatic OCaml with zero external runtime dependencies.
 
 ---
 
@@ -14,6 +14,7 @@ The Lua 5.1 VM executes 32-bit instructions on a register-based stack under the 
 - **Jump Validity Checker**: formal bounds checking for relative jumps (`sBx`) and conditional branch continuity.
 - **CFG Reconstruction**: basic block leader partitioning and Graphviz `.dot` visual export with colored edge classification.
 - **Definite Assignment Analysis**: forward dataflow fixed-point iteration ($\bigcap$ meet operator) proving the absence of uninitialized register reads.
+- **Static Single Assignment (SSA) IR**: on-the-fly SSA translation (Braun et al. 2013) with automatic $\phi$-node synthesis and Graphviz DOT visualization.
 
 ---
 
@@ -29,7 +30,8 @@ lib/
 └── analysis/               # Verification & dataflow passes
     ├── jump_checker.ml/.mli# Relative branch safety & boundary assertions
     ├── cfg.ml / .mli       # Basic block partitioning & Graphviz DOT export
-    └── liveness.ml / .mli  # Use-Def extraction & register dataflow analysis
+    ├── liveness.ml / .mli  # Use-Def extraction & register dataflow analysis
+    └── ssa.ml / .mli       # Static Single Assignment (SSA) IR & Phi-node placement
 ```
 
 ---
@@ -77,7 +79,26 @@ digraph "branching_demo" {
 }
 ```
 
-#### 2. Verifier Diagnostics
+#### 2. Static Single Assignment (SSA) IR with Phi-Nodes
+
+```dot
+digraph "SSA_branching_demo" {
+  node [shape=box, fontname="Courier"];
+  edge [fontname="Helvetica", fontsize=10];
+
+  block_0 [label="Block 0\lR0_v0 = 10\lEQ R0_v0 20\l"];
+  block_1 [label="Block 1\lR0_v1 = 42\l"];
+  block_2 [label="Block 2\lR0_v2 = 99\l"];
+  block_3 [label="Block 3\lR0_v3 = phi(B1: R0_v1, B2: R0_v2)\lreturn R0_v3\l"];
+
+  block_0 -> block_2 [label="true", color=green];
+  block_0 -> block_1 [label="false", color=red];
+  block_1 -> block_3 [label="fallthrough", color=gray];
+  block_2 -> block_3 [label="jump", color=blue];
+}
+```
+
+#### 3. Verifier Diagnostics
 
 ```text
 === Jump Verification Report ===
@@ -98,8 +119,11 @@ digraph "branching_demo" {
 # Build bytecode & analysis libraries
 dune build
 
-# Run test suite & verifier passes
-dune exec lua-verify
+# Run built-in verifier test suite
+dune exec lua-verify -- --test
+
+# Verify an external Lua 5.1 chunk & export CFG + SSA graphs
+dune exec lua-verify -- chunk.luac -o cfg.dot --ssa ssa.dot
 ```
 
 ---
@@ -115,4 +139,4 @@ dune exec lua-verify
 - [x] Graphviz DOT exporter with branch classification
 - [x] Definite assignment dataflow analysis
 - [x] Standalone CLI driver for external `.luac` files
-- [ ] Static Single Assignment (SSA) IR translation
+- [x] Static Single Assignment (SSA) IR translation

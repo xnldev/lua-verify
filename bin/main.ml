@@ -57,15 +57,31 @@ let r = Reader.of_string raw_chunk in
     |] in
     let uninit_report = Liveness.verify_registers (make_dummy_proto "uninit" uninit_code) in
     if uninit_report.violations <> [] then
-      Format.printf "[+] Register liveness analyzer: PASSED (successfully detected uninitialized reads)\n\n"
+      Format.printf "[+] Register liveness analyzer: PASSED (successfully detected uninitialized reads)\n"
     else
-      Format.printf "[-] Register liveness analyzer: FAILED\n\n";
-    
+      Format.printf "[-] Register liveness analyzer: FAILED\n";
+
+    (* SSA IR generator test *)
+    let ssa_code = [|
+      make_insn Instruction.OP_LOADK    0 0 0 0 0;
+      make_insn Instruction.OP_TEST     0 0 0 0 0;
+      make_insn Instruction.OP_LOADBOOL 0 1 0 0 0;
+      make_insn Instruction.OP_RETURN   0 2 0 0 0;
+    |] in
+    let ssa_proto = { (make_dummy_proto "ssa_test" ssa_code) with constants = [| Proto.Number 42.0 |] } in
+    let ssa_cfg = Cfg.build ~name:"ssa_test" ssa_proto in
+    let ssa_ir = Ssa.of_cfg ssa_proto ssa_cfg in
+    let has_phi = List.exists (fun (b : Ssa.block) -> b.phis <> []) ssa_ir.blocks in
+    if has_phi then
+      Format.printf "[+] SSA IR generator: PASSED (phi-nodes synthesized at join points)\n\n"
+    else
+      Format.printf "[-] SSA IR generator: FAILED\n\n";
+
     Format.printf "All built-in verification suites executed.\n"
 
     (* verification of an external file *)
 
-    let verify_file (filepath : string) (dot_out : string option) =
+    let verify_file (filepath : string) (dot_out : string option) (ssa_out : string option) =
       if not (Sys.file_exists filepath) then begin
         Format.eprintf "Error: file not found: %s\n" filepath;
         exit 2
@@ -108,13 +124,25 @@ let r = Reader.of_string raw_chunk in
     Format.printf "%a" Liveness.pp_report liveness_report;
 
     (* CFG and Graphviz DOT export *)
-    let cfg = Cfg.build ~name:(Filename.basename filepath) proto in (match dot_out with
+    let cfg = Cfg.build ~name:(Filename.basename filepath) proto in
+    (match dot_out with
     | Some out_path ->
       let dot_content = Cfg.to_dot cfg in
       Out_channel.with_open_text out_path (fun ch ->
         Out_channel.output_string ch dot_content);
       Format.printf "[+] CFG successfully exported to: %s\n" out_path;
       Format.printf "  (render to image: dot -Tpng %s -o graph.png)\n\n" out_path
+    | None -> ());
+
+    (* SSA IR translation and Graphviz DOT export *)
+    let ssa = Ssa.of_cfg proto cfg in
+    (match ssa_out with
+    | Some out_path ->
+      let dot_content = Ssa.to_dot ssa in
+      Out_channel.with_open_text out_path (fun ch ->
+        Out_channel.output_string ch dot_content);
+      Format.printf "[+] SSA IR successfully exported to: %s\n" out_path;
+      Format.printf "  (render to image: dot -Tpng %s -o ssa_graph.png)\n\n" out_path
     | None -> ());
 
     let jumps_ok = Jump_checker.is_valid jump_reports in
@@ -133,11 +161,13 @@ let r = Reader.of_string raw_chunk in
     let () =
     let input_file = ref "" in
     let dot_output = ref "" in
+    let ssa_output = ref "" in
     let run_tests = ref false in
 
     let speclists = [
       ("-o", Arg.Set_string dot_output, " Path to save the Graphviz (.dot) CFG graph");
       ("--output", Arg.Set_string dot_output, " Path to save the Graphviz (.dot) CFG graph");
+      ("--ssa", Arg.Set_string ssa_output, " Path to save the Graphviz (.dot) SSA IR graph");
       ("--test", Arg.Set run_tests, " Run built-in verifier self-tests");
     ] in
 
@@ -153,4 +183,5 @@ let r = Reader.of_string raw_chunk in
       exit 0
     end else
       let dot_opt = if !dot_output = "" then None else Some !dot_output in
-      verify_file !input_file dot_opt
+      let ssa_opt = if !ssa_output = "" then None else Some !ssa_output in
+      verify_file !input_file dot_opt ssa_opt
