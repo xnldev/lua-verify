@@ -116,9 +116,10 @@ let verify_registers ?(name = "main") (p : Proto.t) : report =
     let cfg = Cfg.build ~name p in
     let initial_params = add_range 0 (p.num_params - 1) RegSet.empty in
 
+    let universe = add_range 0 (max 255 (p.max_stack_size + 32)) RegSet.empty in
     let out_sets = Hashtbl.create 16 in
     List.iter (fun (b : Cfg.basic_block) ->
-        Hashtbl.replace out_sets b.id RegSet.empty
+        Hashtbl.replace out_sets b.id universe
     ) cfg.blocks;
     
     let compute_in_set (b : Cfg.basic_block) : RegSet.t =
@@ -128,9 +129,9 @@ let verify_registers ?(name = "main") (p : Proto.t) : report =
             match preds with
             | [] -> initial_params
             | p0 :: rest ->
-                let s0 = try Hashtbl.find out_sets p0 with Not_found -> RegSet.empty in
+                let s0 = try Hashtbl.find out_sets p0 with Not_found -> universe in
                 List.fold_left (fun acc pred_id -> 
-                    let sp = try Hashtbl.find out_sets pred_id with Not_found -> RegSet.empty in
+                    let sp = try Hashtbl.find out_sets pred_id with Not_found -> universe in
                     RegSet.inter acc sp
                 ) s0 rest
     in
